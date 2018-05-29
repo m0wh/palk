@@ -18,13 +18,6 @@ public class AskNameActivity extends AppCompatActivity {
     public Button enterChat;
     public String name;
 
-    public com.github.nkzawa.socketio.client.Socket socket;
-    {
-        try {
-            socket= IO.socket("https://palk.glitch.me");
-        } catch (URISyntaxException e) {}
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

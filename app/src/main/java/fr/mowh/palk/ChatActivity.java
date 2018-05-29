@@ -1,9 +1,11 @@
 package fr.mowh.palk;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -28,17 +30,7 @@ public class ChatActivity extends AppCompatActivity {
     public EditText messageInput;
     public Button sendButton;
     public JSONObject message = new JSONObject();
-    public String name;
-
-    public Emitter.Listener updateMessages = new Emitter.Listener() {
-        @Override
-        public void call(Object... args) {
-            JSONArray messagesList = (JSONArray) args[0];
-            String[] messages = toStringArray(messagesList);
-            final ArrayAdapter<String> adapter = new ArrayAdapter<>(ChatActivity.this, android.R.layout.simple_list_item_1, messages);
-            messageList.setAdapter(adapter);
-        }
-    };
+    public Activity me;
 
     public static String[] toStringArray(JSONArray array) {
         if(array==null)
@@ -51,41 +43,59 @@ public class ChatActivity extends AppCompatActivity {
         return arr;
     }
 
-
     public com.github.nkzawa.socketio.client.Socket socket;
-    {
-        try {
-            socket= IO.socket("https://palkapp.glitch.me");
-        } catch (URISyntaxException e) {}
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
 
+        me = this;
+
+        try {
+            socket = IO.socket("https://palkapp.glitch.me");
+            socket.connect();
+
+            socket.on("update message", new Emitter.Listener() {
+                @Override
+                public void call(final Object... args) {
+                    me.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            JSONArray data = (JSONArray) args[0];
+                            String[] messages = toStringArray(data);
+                            final ArrayAdapter<String> adapter = new ArrayAdapter<>(ChatActivity.this, android.R.layout.simple_list_item_1, messages);
+                            messageList.setAdapter(adapter);
+                        }
+                    });
+                }
+            });
+        } catch (URISyntaxException e) {
+            Log.wtf("debug",e.toString());
+        }
+
         Bundle bundle = getIntent().getExtras();
-        name = bundle.getString("name");
+        assert bundle != null;
+        final String name = bundle.getString("name");
+
+        // messageInput.setText(name);
 
         socket.connect();
 
         messageList = findViewById(R.id.message_list);
-        messageInput = findViewById(R.id.message_input);
         sendButton = findViewById(R.id.send_button);
-
-
-
-        socket.on("update messages", updateMessages);
+        messageInput = findViewById(R.id.message_input);
 
         sendButton.setOnClickListener(
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        if (!TextUtils.isEmpty(messageInput.getText().toString().trim())) {
+                        String messageInputText = messageInput.getText().toString().trim();
+                        if (!TextUtils.isEmpty(messageInputText)) {
                             try {
-                                message.put("message", messageInput.getText().toString().trim());
+                                message.put("message", messageInputText);
                                 message.put("name", name);
-                            } catch (JSONException e) {}
+                            } catch (JSONException ignored) {}
                             messageInput.setText("");
                             socket.emit("new message", message);
                         }
