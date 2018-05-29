@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Palk</string>
+    <string name="prompt_name">Choisissez un pseudonyme</string>
+    <string name="to_chatActivity">Entrer</string>
+    <string name="send_message">Envoi</string>
+    <string name="type_message_hint">Tapez un message…</string>
+</resources>
